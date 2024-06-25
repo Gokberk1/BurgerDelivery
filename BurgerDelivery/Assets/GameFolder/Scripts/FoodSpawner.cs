@@ -1,58 +1,68 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
 
 public class FoodSpawner : MonoBehaviour
 {
-    [SerializeField] GameObject _spawnedObjectPrefab;
-    Vector3 _firstSpawnPoint;
-    private const float X_OFFSET = 0.25f;
-    private const float Z_OFFSET = 0.35f;
-    private const float Y_OFFSET = 0.06f;
-    private float _timer;
-    public int _foodCount;
-    private int i = 0;
-    private int j = 0;
+    public List<GameObject> FoodList => _foodList;
 
-    private void Start()
+    private List<GameObject> _foodList = new List<GameObject>();
+    [SerializeField] ObjectPool _objectPool;
+    [SerializeField] Transform _firstSpawnPoint;
+    [SerializeField] int _stackCountInRow = 5;
+    [SerializeField] int _totalFoodLimit;
+    [SerializeField] Ease _ease;
+    bool _isWorking;
+
+    public void OnCollecting(Transform collectPos, float offsetYamount)
     {
-        _foodCount = gameObject.transform.childCount;
+        GameObject obj = _foodList[_foodList.Count - 1];
+        obj.GetComponent<Collectable>().Collecting(collectPos, offsetYamount * _foodList.Count);   
     }
 
-    private void Update()
+    void Start()
     {
-        _timer += Time.deltaTime;
+        StartCoroutine(SpawnFood());
+    }
 
-        if (_foodCount < 9 && _timer >= 3)
+    IEnumerator SpawnFood()
+    {
+        while (true) 
         {
-            while (i < 3)
+            yield return new WaitForSeconds(1.5f);
+            if (_isWorking)
             {
-                while (j < 3)
+                GameObject obj = _objectPool.GetObject();
+
+                float foodCount = _foodList.Count;
+                int rowCount = (int)foodCount / _stackCountInRow;
+
+                if (obj != null)
                 {
-                    _firstSpawnPoint = new Vector3(transform.position.x - X_OFFSET + i * X_OFFSET, transform.position.y + Y_OFFSET, transform.position.z - Z_OFFSET + j * Z_OFFSET);
-                    GameObject obj = Instantiate(_spawnedObjectPrefab, _firstSpawnPoint, Quaternion.identity);
-                    obj.transform.SetParent(transform);
+                    Vector3 targetPos = _firstSpawnPoint.position + new Vector3(0, (foodCount % _stackCountInRow) / 7, ((float)rowCount / 2.7f));
+                    obj.transform.position = transform.position + new Vector3(-0.5f, 0, 0);
+                    obj.transform.DOJump(targetPos, 0.5f, 1, 1f).SetEase(_ease);
+                    _foodList.Add(obj);
 
-                    _foodCount = gameObject.transform.childCount;
-                    _timer = 0;
-
-                    j++;
-                    if (j == 3)
+                    if (_foodList.Count >= _totalFoodLimit)
                     {
-                        i++;
-                        j = 0;
+                        _isWorking = false;
                     }
-                    //Debug.Log("j " + j);
-                    break;
                 }
-
-                if(i == 3)
-                {
-                    i = 0;
-                }
-                //Debug.Log("i " + i);
-                break;
             }
+            else if(_foodList.Count < _totalFoodLimit)
+            {
+                _isWorking = true;
+            }
+        }
+    } 
+
+    public void RemoveLast()
+    {
+        if(_foodList.Count > 0)
+        {
+            _foodList.RemoveAt(_foodList.Count - 1);
         }
     }
 }

@@ -5,6 +5,11 @@ TagManager:
   serializedVersion: 2
   tags:
   - CollectArea
+  - BurgerCounter
+  - FriesCounter
+  - DropArea
+  - Collectible
+  - DropZone
   layers:
   - Default
   - TransparentFX
